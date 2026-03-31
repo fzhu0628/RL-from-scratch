@@ -75,7 +75,7 @@ $$
 Q(s,a;\theta) = \text{NN}_\theta(s)[a]
 $$
 
-where *the network outputs Q-values for all actions given a state*. [^1]
+where *the network outputs Q-values for all actions given a state*.[^1]
 [^1] One can of course design the NN such that it takes a state-action pair as input and outputs the Q-value for that pair. However, this is not computation-efficient, as only one Q-value is generated in a forward pass.
 
 While this significantly improves representational power, it introduces instability due to the combination of the three triads:
