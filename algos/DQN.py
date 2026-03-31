@@ -41,7 +41,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
     
-def dqn_interleave_buffer_and_training(env, episodes=500, batch_size=32, gamma=0.9, lr=1e-3):
+def dqn_interleave_buffer_and_training(env, episodes=100, batch_size=32, gamma=0.9, lr=1e-3):
 
     q_net = QNet()
     target_net = QNet()
@@ -103,7 +103,7 @@ def dqn_interleave_buffer_and_training(env, episodes=500, batch_size=32, gamma=0
                 optimizer.step()
 
         # update target network
-        if ep % 20 == 0:
+        if ep % 2 == 0:
             target_net.load_state_dict(q_net.state_dict())
 
         # decay epsilon
@@ -111,7 +111,7 @@ def dqn_interleave_buffer_and_training(env, episodes=500, batch_size=32, gamma=0
 
     return q_net
 
-def dqn_separate_buffer_and_training(env, episodes=500, batch_size=32, gamma=0.9, lr=1e-3, training_steps=10):
+def dqn_separate_buffer_and_training(env, episodes=100, batch_size=32, gamma=0.9, lr=1e-3, training_steps=100):
 
     q_net = QNet()
     target_net = QNet()
