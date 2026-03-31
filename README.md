@@ -7,6 +7,36 @@ While much of our work is theoretical, this project aims to bridge theory and pr
 
 ---
 
+## Environments
+
+We evaluate our implementations on a set of environments with increasing complexity, starting from simple tabular settings and progressing to continuous-state control problems.
+
+### GridWorld
+
+GridWorld is a discrete environment where the agent navigates a 2D grid to reach a goal state. The state space consists of grid coordinates, and the action space includes four discrete actions (up, down, left, right).
+
+This environment is useful for:
+- validating correctness of tabular algorithms
+- understanding convergence behavior
+- debugging implementations
+
+However, due to its small and fully observable state space, it does not require function approximation and therefore does not fully demonstrate the advantages of deep RL methods.
+
+---
+
+### CartPole
+
+CartPole is a classic control problem where the agent must balance a pole on a moving cart. The state space is continuous and consists of position, velocity, angle, and angular velocity, while the action space is discrete (left or right force).
+
+This environment introduces:
+- continuous state representation
+- need for function approximation
+- more realistic control dynamics
+
+It serves as a natural next step for evaluating linear function approximation and deep Q-learning methods.
+
+---
+
 ## Value-Based Algorithms
 
 In this section, we implement three representative value-based methods:
