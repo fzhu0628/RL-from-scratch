@@ -1,6 +1,6 @@
 import numpy as np
 class GridWorld:
-    def __init__(self, grid_size=5, goal_state=(4, 4)):
+    def __init__(self, grid_size=16, goal_state=(15, 15)):
         self.grid_size = grid_size
         self.goal_state = goal_state
         self.state = (0, 0)  # Start at the top-left corner
@@ -21,22 +21,12 @@ class GridWorld:
             y = min(y + 1, self.grid_size - 1)
 
         self.state = (x, y)
-        reward = -1 if self.state != self.goal_state else 0
+        reward = -5 if self.state != self.goal_state else 0
         done = self.state == self.goal_state
         return self.state, reward, done
     
 
-def run_policy(env, q_table):
-    state = env.reset()
-    done = False
-    path = [state]
-    while not done:
-        x, y = state
-        action = np.argmax(q_table[x, y])   
-        state, _, done = env.step(action)
-        path.append(state)
 
-    return path
 
 
 
