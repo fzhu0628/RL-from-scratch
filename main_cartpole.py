@@ -5,9 +5,9 @@ import gymnasium as gym
 from algos.rainbow import rainbow
 
 env = CartPoleEnv(render=False)
-# model = dqn_separate_buffer_and_training(env)
+model = dqn_separate_buffer_and_training(env)
 # model = dqn_interleave_buffer_and_training(env)
-model = rainbow(env)
+# model = rainbow(env)
 
 # env = CartPoleEnv(render=False)
 reward = run_dqn_policy_cartpole(env, model)

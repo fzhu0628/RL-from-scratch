@@ -47,7 +47,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.9, lr=1e-4, training_steps=10):
+def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=64, gamma=0.99, lr=1e-3, training_steps=200, target_update_steps=1000, epsilon_decay=0.99, epsilon_min=0.005):
 
     q_net = QNet(env.state_dim, env.action_dim).to(device)
     target_net = QNet(env.state_dim, env.action_dim).to(device)
@@ -57,8 +57,8 @@ def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.
     buffer = ReplayBuffer()
 
     epsilon = 1.0
-    window = 50
     episode_rewards = []
+    training_steps_count = 0
 
     for ep in range(episodes):
         total_reward = 0
@@ -66,7 +66,6 @@ def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.
         done = False
 
         while not done:
-            # s = np.array(state) / (env.grid_size - 1) # gridworld specific
             s = np.array(state, dtype=np.float32)
 
             # ε-greedy
@@ -75,25 +74,19 @@ def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.
             else:
                 with torch.no_grad():
                     q_values = q_net(torch.tensor(s, dtype=torch.float32).to(device))
-                    action = torch.argmax(q_values).item() # .item() to get the scalar value from tensor
+                    action = torch.argmax(q_values).item()
 
             next_state, reward, done = env.step(action)
             total_reward += reward
-
-            # s_next = np.array(next_state) / (env.grid_size - 1) # gridworld specific
             s_next = np.array(next_state, dtype=np.float32)
-
             buffer.push(s, action, reward, s_next, done)
-
             state = next_state
 
         episode_rewards.append(total_reward)
 
-        
-        if len(buffer) >= 1000:
-            # training step
+        # Training happens after collecting enough data
+        if len(buffer) >= 500:
             for _ in range(training_steps):
-                # preprocess the batch
                 s_b, a_b, r_b, s_next_b, done_b = buffer.sample(batch_size)
 
                 s_b = torch.tensor(s_b, dtype=torch.float32).to(device)
@@ -102,14 +95,12 @@ def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.
                 s_next_b = torch.tensor(s_next_b, dtype=torch.float32).to(device)
                 done_b = torch.tensor(done_b, dtype=torch.float32).to(device)
 
-                # Q(s,a)
-                q_values = q_net(s_b) # forward pass (with grad), dimension: batch_size * 4
-                q_sa = q_values.gather(1, a_b.unsqueeze(1)).squeeze() # .gather(dim, index) gathers along dim using index. outputs dimension batch_size
+                q_values = q_net(s_b)
+                q_sa = q_values.gather(1, a_b.unsqueeze(1)).squeeze()
 
-                # target (no grad!)
                 with torch.no_grad():
-                    q_next = target_net(s_next_b).max(1)[0] # batch_size * 4 -> max along dim 1 -> values, indices -> values
-                    target = r_b + gamma * q_next * (1 - done_b) # element wise product, since they're of the same dim.
+                    q_next = target_net(s_next_b).max(1)[0]
+                    target = r_b + gamma * q_next * (1 - done_b)
 
                 loss = nn.MSELoss()(q_sa, target)
 
@@ -117,26 +108,15 @@ def dqn_separate_buffer_and_training(env, episodes=1000, batch_size=32, gamma=0.
                 loss.backward()
                 optimizer.step()
 
-            # update target network
-            if ep % 20 == 0:
-                target_net.load_state_dict(q_net.state_dict())
+                training_steps_count += 1
+                
+                # Update target network based on training steps
+                if training_steps_count % target_update_steps == 0:
+                    target_net.load_state_dict(q_net.state_dict())
 
-            # decay epsilon
-            epsilon = max(0.05, epsilon * 0.995)
-        
-        # stopping check
-        # recent = episode_rewards[-window:]
+            # Decay epsilon EVERY episode
+            epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
-        # if len(recent) == window and np.std(recent) < 5:
-        #     print("Converged (plateau)")
-        #     break
-        
-        # if total_reward > 450:
-        #     print("Solved!")
-        #     break
-
-        
-    
     plt.plot(episode_rewards)
     plt.xlabel("Episode")
     plt.ylabel("Reward")

@@ -9,12 +9,7 @@
   - [Tabular Q-Learning](#tabular-q-learning)
   - [Q-Learning with Linear Function Approximation (LFA)](#q-learning-with-linear-function-approximation-lfa)
   - [Deep Q-Networks (DQN)](#deep-q-networks-dqn)
-- [Rainbow (Experimental)](#rainbow-experimental)
-- [Project Structure](#project-structure)
-- [Setup](#setup)
-- [How To Run](#how-to-run)
-- [Notes](#notes)
-- [Roadmap](#roadmap)
+
 
 ## Abstract
 I am a PhD candidate in the *Department of Electrical and Computer Engineering* at North Carolina State University. My research focuses on the theory of reinforcement learning (RL), particularly on leveraging multi-agent structures to improve sample efficiency. Specifically, we develop algorithms with provable guarantees to demonstrate the benefits of collaboration and decentralized learning.
@@ -29,27 +24,39 @@ We evaluate our implementations on a set of environments with increasing complex
 
 ### GridWorld
 
-GridWorld is a discrete environment where the agent navigates a 2D grid to reach a goal state. The state space consists of grid coordinates, and the action space includes four discrete actions (up, down, left, right).
+GridWorld is a deterministic navigation task implemented on a fixed 2D lattice.
+
+- **State space:** discrete coordinates $(x,y)$ on a $16 \times 16$ grid, with start state $(0,0)$ and goal state $(15,15)$.
+- **Action space:** four discrete actions: up, down, left, right.
+- **Transition model:** deterministic movement; attempts to move outside the grid are clipped at boundaries.
+- **Reward function:** $-5$ for each non-goal step and $0$ at the goal.
+- **Stop criterion:** an episode ends when the agent reaches the goal state.
 
 This environment is useful for:
-- validating correctness of tabular algorithms
-- understanding convergence behavior
-- debugging implementations
+- validating tabular Bellman updates and policy extraction
+- checking convergence behavior in a controlled MDP
+- debugging exploration and reward-shaping effects
 
-However, due to its small and fully observable state space, it does not require function approximation and therefore does not fully demonstrate the advantages of deep RL methods.
+Because the state is low-dimensional and fully observable, GridWorld is mainly a correctness and diagnostics benchmark rather than a strong test of deep function approximation.
 
 ---
 
 ### CartPole
 
-CartPole is a classic control problem where the agent must balance a pole on a moving cart. The state space is continuous and consists of position, velocity, angle, and angular velocity, while the action space is discrete (left or right force).
+CartPole is a continuous-state control task where the agent applies horizontal force to keep an inverted pole balanced.
+
+- **State space:** a 4D continuous vector: cart position, cart velocity, pole angle, and pole angular velocity.
+- **Action space:** two discrete actions: push left or push right.
+- **Transition model:** stochastic simulation dynamics from Gymnasium CartPole-v1.
+- **Reward function:** per-step survival reward from the base environment.
+- **Stop criterion:** an episode ends on failure (terminated) or time-limit truncation.
 
 This environment introduces:
 - continuous state representation
-- need for function approximation
-- more realistic control dynamics
+- function approximation requirements for value estimation
+- longer-horizon training dynamics relevant to DQN-style methods
 
-It serves as a natural next step for evaluating linear function approximation and deep Q-learning methods.
+It serves as a natural next step after GridWorld for evaluating linear approximation and neural value function learning.
 
 ---
 
@@ -123,7 +130,7 @@ $$
 
 where *the network outputs Q-values for all actions given a state*. **Note:** One can of course design the NN such that it takes a state-action pair as input and outputs the Q-value for that pair. However, this is not computation-efficient, as only one Q-value is generated in a forward pass.
 
-While this significantly improves representational power, it introduces instability due to the combination of the three triads:
+While this significantly improves representational power, it introduces instability due to the combination of the *three triads*:
 - **bootstrapping**
 - **function approximation**  
 - **off-policy learning**
@@ -152,9 +159,9 @@ DQN can be viewed as a *nonlinear* extension of linear function approximation, w
 Notably, we provide two implementations of DQN that differ in how data collection and training are scheduled.
 
 - **Interleaved Training (Online Updates).**  
-  In the first implementation, data collection and training are performed simultaneously. At each environment step, the agent stores the transition in the replay buffer and immediately performs a gradient update once the buffer size exceeds a threshold. This corresponds to a standard online DQN setup, where each interaction step is followed by a training step. While this approach is simple and sample-efficient, it may suffer from instability in early stages due to **highly correlated** samples. The implementation is provided in `dqn_interleave_buffer_and_training` :contentReference[oaicite:0]{index=0}.
+  In this implementation, data collection and training are interleaved. At each environment step, the agent stores the transition in the replay buffer and performs a gradient update once the buffer size exceeds a threshold. This matches a standard *online* DQN setup, where each interaction step is followed by a training step. Because updates begin while the buffer is still being populated, the sampled transitions can be highly correlated. A common implementation detail is to **add a warmup period before training starts**. The implementation is provided in `algos/dqn_interleave_buffer_and_training`.
 
 - **Separated Training (Offline Updates).**  
-  In the second implementation, we decouple data collection and training. The agent first interacts with the environment to populate the replay buffer, and then performs multiple gradient updates using the collected data. This approach is more aligned with batched or offline training paradigms, where updates are performed on a relatively stable dataset. Empirically, this can improve stability and allow for more controlled optimization. The implementation is provided in `dqn_separate_buffer_and_training` :contentReference[oaicite:1]{index=1}.
+  In this implementation, data collection and training are separated. The agent first interacts with the environment to populate the replay buffer, and then performs multiple gradient updates using the collected data. This matches a batched training setup, where optimization is applied to a fixed dataset collected in advance. The implementation is provided in `algos/dqn_separate_buffer_and_training`.
 
-These two variants highlight an important design choice in deep RL: the balance between data collection and optimization. The interleaved version emphasizes responsiveness and continual learning, while the separated version emphasizes stability and better utilization of replayed experiences.
+These two variants highlight a design choice in deep RL: whether data collection and optimization happen in the same loop or in separate phases.
