@@ -1,5 +1,21 @@
 # Implementation of Modern Reinforcement Learning (RL) Algorithms from Scratch
 
+## Contents
+- [Abstract](#abstract)
+- [Environments](#environments)
+  - [GridWorld](#gridworld)
+  - [CartPole](#cartpole)
+- [Value-Based Algorithms](#value-based-algorithms)
+  - [Tabular Q-Learning](#tabular-q-learning)
+  - [Q-Learning with Linear Function Approximation (LFA)](#q-learning-with-linear-function-approximation-lfa)
+  - [Deep Q-Networks (DQN)](#deep-q-networks-dqn)
+- [Rainbow (Experimental)](#rainbow-experimental)
+- [Project Structure](#project-structure)
+- [Setup](#setup)
+- [How To Run](#how-to-run)
+- [Notes](#notes)
+- [Roadmap](#roadmap)
+
 ## Abstract
 I am a PhD candidate in the *Department of Electrical and Computer Engineering* at North Carolina State University. My research focuses on the theory of reinforcement learning (RL), particularly on leveraging multi-agent structures to improve sample efficiency. Specifically, we develop algorithms with provable guarantees to demonstrate the benefits of collaboration and decentralized learning.
 

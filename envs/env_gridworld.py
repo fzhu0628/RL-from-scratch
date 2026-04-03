@@ -4,6 +4,8 @@ class GridWorld:
         self.grid_size = grid_size
         self.goal_state = goal_state
         self.state = (0, 0)  # Start at the top-left corner
+        self.state_dim = 2
+        self.action_dim = 4
 
     def reset(self):
         self.state = (0, 0)

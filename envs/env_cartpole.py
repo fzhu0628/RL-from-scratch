@@ -2,8 +2,11 @@ import gymnasium as gym
 import numpy as np
 
 class CartPoleEnv:
-    def __init__(self):
-        self.env = gym.make("CartPole-v1")
+    def __init__(self, render=False):
+        if render:
+            self.env = gym.make("CartPole-v1", render_mode="human")
+        else:
+            self.env = gym.make("CartPole-v1")
 
         # properties (for consistency with your GridWorld API)
         self.state_dim = 4
@@ -23,3 +26,4 @@ class CartPoleEnv:
 
     def close(self):
         self.env.close()
+
