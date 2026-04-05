@@ -83,7 +83,7 @@ $$
 
 Under standard assumptions, tabular Q-learning converges to the optimal action-value function $Q^*$ with a rate of $\tilde{O}(1/\sqrt{T})$. Its simplicity and strong theoretical guarantees make it a natural starting point for understanding more advanced methods.
 
-**Implementation:** `algos/q_learning.py`
+**Implementation:** `algos/Vanilla_Q.py`
 
 ---
 
@@ -116,7 +116,7 @@ More importantly, the limitation is not merely the dimensionality, but the expre
 
 As a result, Q-learning with LFA is generally limited to relatively simple tasks and requires careful feature engineering. Nevertheless, it provides an important conceptual bridge between tabular methods and deep RL, where feature representations are learned **automatically** via neural networks.
 
-**Implementation:** `algos/q_learning_lfa.py`
+**Implementation:** `algos/Q_LFA.py`
 
 ---
 
@@ -154,7 +154,7 @@ Gradient-based optimization is performed over batches of transitions for **impro
 
 DQN can be viewed as a *nonlinear* extension of linear function approximation, where **the feature representation is learned jointly with the value function.**
 
-**Implementation:** `algos/dqn.py`
+**Implementation:** `algos/DQN.py`
 
 Notably, we provide two implementations of DQN that differ in how data collection and training are scheduled.
 
@@ -165,3 +165,17 @@ Notably, we provide two implementations of DQN that differ in how data collectio
   In this implementation, data collection and training are separated. The agent first interacts with the environment to populate the replay buffer, and then performs multiple gradient updates using the collected data. This matches a batched training setup, where optimization is applied to a fixed dataset collected in advance. The implementation is provided in `algos/dqn_separate_buffer_and_training`.
 
 These two variants highlight a design choice in deep RL: whether data collection and optimization happen in the same loop or in separate phases.
+
+Notably, we would like to provide a careful discussion on the hyperparameters of DQN, such as learning rate, batch size, replay buffer size, target network update frequency, etc. These hyperparameters can significantly affect the performance and stability of DQN. For example, a large learning rate may lead to divergence, while a small learning rate may result in slow convergence. A large batch size can improve stability but may require more computational resources. A large replay buffer can provide more diverse experiences but may also introduce stale data. The target network update frequency can affect the bias-variance tradeoff in the target estimation.
+
+- **Learning Rate:** A common choice is $1e-3$ or $1e-4$. A too large learning rat can cause divergence, while a too small learning rate can lead to slow convergence. It is often recommended to start with a moderate learning rate and adjust based on the observed training dynamics.
+
+- **Batch Size:** A common choice is 32 or 64. A larger batch size can improve stability but may require more computational resources. A smaller batch size can lead to noisier updates but may allow for faster iterations.
+
+- **Replay Buffer Size:** A common choice is 100,000 or 1,000,000 transitions. A larger replay buffer can provide more diverse experiences but may also introduce stale data. It is important to ensure that the buffer is large enough to capture a wide range of experiences while also being manageable in terms of memory. Particularly, if the buffer is too small, the agent may overfit to recent experiences, and fail to explore optimal policies.
+
+- **Training Steps Per Episode:** This parameter is specific to the separated training implementation. A common choice is 100 or 200 training steps per episode (for a total of 1000 episodes). This allows the agent to perform multiple updates using the collected data, which can improve performance. As the number of training steps tends to infinity, this approach corresponds to the scheme of fitted Q-iteration (FQI), which can be computationally expensive and may lead to overfitting if the data is not sufficiently diverse. *Note*: the FQI is essentially applying the projected Bellman operator iteratively on a fixed dataset.
+
+- **Target Network Update Frequency:** A target network is specifically designed to stabilize training by decoupling the target from the rapidly changing Q-network. A common choice is to update the target network every 1000 training steps. This can help to reduce the variance of the target estimates and improve stability. Particularly, if the target network is updated too frequently, it may not provide sufficient stability, while if it is updated too infrequently, it may lead to stale targets that do not reflect the current policy. Therefore, it is important to find a balance in the target network update frequency based on the observed training dynamics.
+
+- **Epsilon Decay Schedule:** In an $\epsilon$-greedy exploration strategy, the choice of how $\epsilon$ decays over time can significantly affect the agent's ability to explore the environment effectively. A common approach is to start with a high $\epsilon$ (e.g., 1.0) and decay it gradually to a lower value (e.g., 0.01) over a certain number of episodes (e.g., 500 or 1000). This allows the agent to explore more in the early stages of training and exploit learned policies more as training progresses. This explorative parameter is ensured by the hyperparameter `epsilon_min', which sets the minimum value of $\epsilon$ after decay.

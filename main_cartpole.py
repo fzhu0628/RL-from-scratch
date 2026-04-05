@@ -1,8 +1,8 @@
 import numpy as np
 from envs.env_cartpole import CartPoleEnv
-from algos.dqn import dqn_interleave_buffer_and_training, dqn_separate_buffer_and_training, run_dqn_policy_cartpole
+from algos.DQN import dqn_interleave_buffer_and_training, dqn_separate_buffer_and_training, run_dqn_policy_cartpole
 import gymnasium as gym
-from algos.rainbow import rainbow
+from algos.RAINBOW import rainbow
 
 env = CartPoleEnv(render=False)
 model = dqn_separate_buffer_and_training(env)

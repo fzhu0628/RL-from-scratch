@@ -5,7 +5,7 @@ import numpy as np
 from collections import deque
 import random
 import matplotlib.pyplot as plt
-from algos.dqn import QNet, ReplayBuffer, device
+from algos.DQN import QNet, ReplayBuffer, device
 
 '''We propose to add features to realize rainbow one step at a time, starting with the most basic one: double DQN.'''
 
@@ -77,12 +77,13 @@ def rainbow(
 
                 # Q(s,a)
                 q_values = q_net(s_b) # forward pass (with grad), dimension: batch_size * 4
+
                 q_sa = q_values.gather(1, a_b.unsqueeze(1)).squeeze() # .gather(dim, index) gathers along dim using index. outputs dimension batch_size
 
                 # target (no grad!)
                 with torch.no_grad():
                     # action selection (online network)
-                    next_actions = q_net(s_next_b).argmax(1)
+                    next_actions = q_net(s_next_b).argmax(1) # q_net is of dim batch_size * 4, find the action yielding the max q value along dim 1
 
                     # action evaluation (target network)
                     q_next = target_net(s_next_b).gather(1, next_actions.unsqueeze(1)).squeeze()

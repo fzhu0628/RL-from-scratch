@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 from envs.env_gridworld import GridWorld
-from algos.q_learning import q_learning, q_learning_LFA, run_policy
-from algos.dqn import dqn_interleave_buffer_and_training, dqn_separate_buffer_and_training, run_dqn_policy_gridworld
-from algos.q_learning_lfa import q_learning_LFA
+from algos.Vanilla_Q import q_learning, q_learning_LFA, run_policy
+from algos.DQN import dqn_interleave_buffer_and_training, dqn_separate_buffer_and_training, run_dqn_policy_gridworld
+from algos.Q_LFA import q_learning_LFA
 
 
 
