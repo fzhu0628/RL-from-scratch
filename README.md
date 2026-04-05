@@ -235,15 +235,17 @@ where $G_t$ is the discounted return from time $t$ onward.
 
 #### Pseudocode
 
-```text
-for episode = 1, 2, ..., M do
-    Generate episode τ = (s0,a0,r0, ..., sT) using πθ
-    for each step t in τ do
-        G_t = Σ_{t'=t}^T γ^{t'-t} r_{t'}
-        θ ← θ + η ∇θ log πθ(a_t | s_t) G_t
-    end for
-end for
-```
+$$
+\begin{array}{l}
+\text{for episode } = 1, 2, \ldots, M~\text{do} \\
+\quad \text{Sample episode } \tau = (s_0, a_0, r_0, \ldots, s_T) \sim \pi_\theta \\
+\quad \text{for each step } t = 0, 1, \ldots, T-1~\text{do} \\
+\qquad G_t = \sum_{t'=t}^{T-1} \gamma^{t'-t} r_{t'} \\
+\qquad \theta \leftarrow \theta + \eta~\nabla_\theta \log \pi_\theta(a_t | s_t)~G_t \\
+\quad \text{end for} \\
+\text{end for}
+\end{array}
+$$
 
 ---
 
