@@ -9,6 +9,8 @@
   - [Tabular Q-Learning](#tabular-q-learning)
   - [Q-Learning with Linear Function Approximation (LFA)](#q-learning-with-linear-function-approximation-lfa)
   - [Deep Q-Networks (DQN)](#deep-q-networks-dqn)
+- [Policy Gradient Methods](#policy-gradient-methods)
+  - [REINFORCE (Monte Carlo Policy Gradient)](#reinforce-monte-carlo-policy-gradient)
 
 
 ## Abstract
@@ -62,12 +64,13 @@ It serves as a natural next step after GridWorld for evaluating linear approxima
 
 ## Value-Based Algorithms
 
-In this section, we implement three representative value-based methods:
+Value-based algorithms lie at the heart of reinforcement learning, focusing on learning estimates of the value (expected cumulative reward) for each state or state-action pair under a particular policy. By incrementally improving these estimates using observed experience, agents can derive effective control strategies through value optimization. In this section, we implement three representative methods, each building on the strengths and limitations of the previous:
+
 - Tabular Q-learning  
 - Q-learning with Linear Function Approximation (LFA)  
 - Deep Q-Networks (DQN)  
 
-These methods illustrate the progression from exact representations to function approximation and deep learning.
+Together, these methods trace the evolution of value-based RL from exact solutions in simple environments to scalable algorithms for complex, real-world tasks. By examining each approach in turn, we gain both theoretical insight and practical experience in the progression from tabular representations to modern deep RL.
 
 ---
 
@@ -179,3 +182,78 @@ Notably, we would like to provide a careful discussion on the hyperparameters of
 - **Target Network Update Frequency:** A target network is specifically designed to stabilize training by decoupling the target from the rapidly changing Q-network. A common choice is to update the target network every 1000 training steps. This can help to reduce the variance of the target estimates and improve stability. Particularly, if the target network is updated too frequently, it may not provide sufficient stability, while if it is updated too infrequently, it may lead to stale targets that do not reflect the current policy. Therefore, it is important to find a balance in the target network update frequency based on the observed training dynamics.
 
 - **Epsilon Decay Schedule:** In an $\epsilon$-greedy exploration strategy, the choice of how $\epsilon$ decays over time can significantly affect the agent's ability to explore the environment effectively. A common approach is to start with a high $\epsilon$ (e.g., 1.0) and decay it gradually to a lower value (e.g., 0.01) over a certain number of episodes (e.g., 500 or 1000). This allows the agent to explore more in the early stages of training and exploit learned policies more as training progresses. This explorative parameter is ensured by the hyperparameter `epsilon_min', which sets the minimum value of $\epsilon$ after decay.
+
+---
+
+## Policy Gradient Methods
+
+While value-based algorithms such as Q-learning and DQN focus on estimating value functions and deriving policies indirectly (via action selection from Q-values), **policy gradient methods** directly optimize the parameters of a policy by maximizing the expected sum of rewards. This direct approach is especially powerful in high-dimensional and continuous action spaces, or when differentiable policies are required.
+
+### Key Motivation
+
+- **Expressive Policies:** Policy gradients work with both deterministic and stochastic policies, improving exploration.
+- **Continuous Actions:** They naturally handle continuous actions, where value-based methods often fail.
+- **Direct Optimization:** They update policies in the direction that locally improves the expected return, using gradient ascent.
+
+Despite these advantages, policy gradients often exhibit **high variance** and benefit from techniques like baselines or actor-critic architectures for better learning efficiency.
+
+---
+
+### REINFORCE (Monte Carlo Policy Gradient)
+
+**REINFORCE** (Williams, 1992) is a foundational Monte Carlo policy gradient algorithm. It uses complete episode returns to update policy parameters based on performance.
+
+#### Objective
+
+Given a parameterized stochastic policy $\pi_\theta(a|s)$, the objective is to maximize the expected return:
+$$
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T-1} \gamma^t r_t \right]
+$$
+
+The policy gradient theorem tells us:
+$$
+\nabla_\theta J(\theta) = \mathbb{E}_\tau \left[ \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t|s_t)\, G_t \right]
+$$
+where $G_t$ is the discounted return from time $t$ onward.
+
+---
+
+#### Algorithm (Episodic)
+
+1. **Initialize** policy parameters $\theta$
+2. **Repeat:**
+    - Generate an **episode** $\tau = (s_0, a_0, r_0, ..., s_T)$ by sampling actions from $\pi_\theta$
+    - For each step $t$ in $\tau$:
+        - Compute return $G_t = \sum_{t'=t}^T \gamma^{t'-t} r_{t'}$
+        - Update parameters:
+          $$
+          \theta \leftarrow \theta + \eta\, \nabla_\theta \log \pi_\theta(a_t | s_t)\, G_t
+          $$
+3. **Until** convergence
+
+---
+
+#### Pseudocode
+
+```text
+for episode = 1, 2, ..., M do
+    Generate episode τ = (s0,a0,r0, ..., sT) using πθ
+    for each step t in τ do
+        G_t = Σ_{t'=t}^T γ^{t'-t} r_{t'}
+        θ ← θ + η ∇θ log πθ(a_t | s_t) G_t
+    end for
+end for
+```
+
+---
+
+#### Practical Notes
+
+- The policy is typically represented by a neural network outputting *action probabilities* (for discrete actions) or *distribution parameters* (for continuous actions).
+- Log-probabilities and rewards are stored for each episode, and the policy is updated once at the end of each trajectory. **Note**: the code for implementation is DIFFERENT from the pseudocode; specifically, in the pseudocode, the policy is updated for $\tau$ steps, which is valid since the gradients are evaluated at the same parameters $\theta$. In practice, we often perform a single update after processing the entire episode, since if we update the policy multiple times within the same episode, the gradients will be evaluated at different parameters, which may not correspond to the original policy that generated the trajectory. This can lead to biased updates and unstable learning dynamics.
+- Variance reduction is important: subtracting a baseline (e.g. an average return) from $G_t$ does not introduce bias but reduces variance significantly.
+
+The REINFORCE algorithm is implemented in `algos/REINFORCE.py` and serves as a starting point for understanding policy gradient methods. It provides a clear illustration of how to directly optimize policies using sampled returns, while also highlighting the challenges of high variance and the need for further improvements.
+
+---
+
