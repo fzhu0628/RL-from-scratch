@@ -218,16 +218,17 @@ Despite these advantages, policy gradients often exhibit **high variance** and b
 
 #### Objective
 
-Given a parameterized stochastic policy $\pi_\theta(a|s)$, the objective is to maximize the expected return:
+Given a parameterized stochastic policy $\pi_\theta(a \mid s)$, the objective is to maximize the expected return:
 $$
 J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T-1} \gamma^t r_t \right]
 $$
 
 The policy gradient theorem tells us:
 $$
-\nabla_\theta J(\theta) = \mathbb{E}_\tau \left[ \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t|s_t)\, G_t \right]
+\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, G_t \right]
 $$
-where $G_t$ is the discounted return from time $t$ onward.
+
+where $G_t = \sum_{k=t}^{T-1} \gamma^{k-t} r_k$ is the discounted return from time $t$ onward.
 
 ---
 
@@ -240,7 +241,7 @@ where $G_t$ is the discounted return from time $t$ onward.
         - Compute return $G_t = \sum_{t'=t}^T \gamma^{t'-t} r_{t'}$
         - Update parameters:
           $$
-          \theta \leftarrow \theta + \eta~\nabla_\theta \log \pi_\theta(a_t | s_t)~G_t
+          \theta \leftarrow \theta + \eta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, G_t
           $$
 3. **Until** convergence
 
@@ -260,28 +261,28 @@ The REINFORCE algorithm is implemented in `algos/REINFORCE.py` and serves as a s
 
 The REINFORCE algorithm suffers from **high variance** in policy updates due to the use of complete episode returns, making training unstable. **A2C** is an **actor-critic** method that improves upon vanilla REINFORCE by introducing a learned **critic** as a baseline to reduce gradient variance.
 
-- **Actor:** a parameterized policy \(\pi_\theta(a\mid s)\) that outputs an action distribution.
-- **Critic:** a parameterized value function \(V_\phi(s)\) that estimates expected future return from state \(s\).
+- **Actor:** a parameterized policy $\pi_\theta(a \mid s)$ that outputs a distribution over actions.
+- **Critic:** a parameterized value function $V_\phi(s)$ that estimates the expected return from state $s$.
 
-The actor is updated using an **advantage estimate**, which measures how good an action is relative to the baseline value \(V_\phi(s)\).
+The actor is updated using an **advantage estimate**, which measures how good an action is relative to the baseline value $V_\phi(s)$.
 
 ---
 
 #### Advantage (1-step TD)
 
 A commonly used advantage estimator in A2C is the **1-step temporal-difference (TD) advantage**:
-\[
-\hat{A}_t \;=\; r_t \;+\; \gamma\, V_\phi(s_{t+1}) \;-\; V_\phi(s_t)
-\]
+$$
+\hat{A}_t = r_t + \gamma \, V_\phi(s_{t+1}) - V_\phi(s_t)
+$$
 
 Equivalently, define the TD target
-\[
-y_t \;=\; r_t + \gamma V_\phi(s_{t+1})
-\]
+$$
+y_t = r_t + \gamma \, V_\phi(s_{t+1})
+$$
 and compute
-\[
+$$
 \hat{A}_t = y_t - V_\phi(s_t)
-\]
+$$
 
 ---
 
@@ -290,44 +291,47 @@ and compute
 Theoretically, the A2C algorithm could have separate neural networks for the actor and critic, but in practice, it is common to use a shared backbone with two heads (one for the policy and one for the value function). The loss functions for the actor and critic are defined as follows:
 
 **Actor loss** (maximize expected return; implemented as minimizing the negative objective):
-\[
-\mathcal{L}_{\text{actor}}(\theta) \;=\; -\log \pi_\theta(a_t\mid s_t)\, \hat{A}_t
-\]
+$$
+\mathcal{L}_{\text{actor}}(\theta) = -\log \pi_\theta(a_t \mid s_t)\, \hat{A}_t
+$$
 
 **Critic loss** (value regression via TD error):
-\[
-\mathcal{L}_{\text{critic}}(\phi) \;=\; \hat{A}_t^2
-\]
+$$
+\mathcal{L}_{\text{critic}}(\phi) = \hat{A}_t^2
+$$
 
 An additional **entropy bonus** can be included to encourage exploration:
-\[
-\mathcal{L}_{\text{entropy}}(\theta) \;=\; -\mathcal{H}(\pi_\theta(\cdot\mid s_t))
-\]
+$$
+\mathcal{L}_{\text{entropy}}(\theta) = -\mathcal{H}\bigl(\pi_\theta(\cdot \mid s_t)\bigr)
+$$
 
 **Total loss** (typical weighting):
-\[
-\mathcal{L} \;=\; \mathcal{L}_{\text{actor}} \;+\; 0.5\,\mathcal{L}_{\text{critic}} \;+\; 0.01\,\mathcal{L}_{\text{entropy}}
-\]
+$$
+\mathcal{L} = \mathcal{L}_{\text{actor}} + 0.5\,\mathcal{L}_{\text{critic}} + 0.01\,\mathcal{L}_{\text{entropy}}
+$$
 
 In practice, the advantage term is usually **detached** when computing the actor loss so that the actor does not backpropagate through the critic.
 
 ---
 
 #### Algorithm
-1. **Initialize** actor parameters \(\theta\) and critic parameters \(\phi\)
+
+1. **Initialize** actor parameters $\theta$ and critic parameters $\phi$
+
 2. **Repeat:**
-    - Generate an episode \(\tau = (s_0, a_0, r_0, ..., s_T)\) by sampling actions from \(\pi_\theta\)
-    - For each step \(t\) in \(\tau\):
-        - Compute TD target: \(y_t = r_t + \gamma V_\phi(s_{t+1})\)
-        - Compute advantage: \(\hat{A}_t = y_t - V_\phi(s_t)\)
-        - Update actor parameters:
-          \[
-          \theta \leftarrow \theta + \eta_\theta\, \nabla_\theta \log \pi_\theta(a_t\mid s_t)\, \hat{A}_t
-          \]
-        - Update critic parameters:
-          \[
-          \phi \leftarrow \phi - \eta_\phi\, \nabla_\phi (y_t - V_\phi(s_t))^2
-          \]
+   - Generate an episode $\tau = (s_0, a_0, r_0, \ldots, s_T)$ by sampling actions from $\pi_\theta$
+   - For each step $t$ in $\tau$:
+     - Compute TD target: $y_t = r_t + \gamma \, V_\phi(s_{t+1})$
+     - Compute advantage: $\hat{A}_t = y_t - V_\phi(s_t)$
+     - Update actor parameters:
+       $$
+       \theta \leftarrow \theta + \eta_\theta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \hat{A}_t
+       $$
+     - Update critic parameters:
+       $$
+       \phi \leftarrow \phi - \eta_\phi \, \nabla_\phi \bigl(y_t - V_\phi(s_t)\bigr)^2
+       $$
+
 3. **Until** convergence
 
 
