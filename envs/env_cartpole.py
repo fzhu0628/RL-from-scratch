@@ -18,8 +18,7 @@ class CartPoleEnv:
 
     def step(self, action):
         next_state, reward, terminated, truncated, _ = self.env.step(action)
-        done = terminated or truncated
-        return next_state, reward, done
+        return next_state, reward, terminated, truncated
 
     def render(self):
         self.env.render()

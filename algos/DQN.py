@@ -169,8 +169,9 @@ def dqn_interleave_buffer_and_training(
                     q_values = q_net(torch.tensor(s, dtype=torch.float32).to(device))
                     action = torch.argmax(q_values).item() # .item() to get the scalar value from tensor
 
-            next_state, reward, done = env.step(action)
+            next_state, reward, terminated, truncated = env.step(action)
             total_reward += reward
+            done = terminated or truncated
 
             # s_next = np.array(next_state) / (env.grid_size - 1)
             s_next = np.array(next_state, dtype=np.float32)
@@ -243,7 +244,8 @@ def run_dqn_policy_gridworld(env, model):
         with torch.no_grad():
             action = torch.argmax(model(s)).item()
 
-        next_state, _, done = env.step(action)
+        next_state, _, terminated, truncated = env.step(action)
+        done = terminated or truncated
         path.append(next_state)
 
         if done or next_state in visited:
@@ -265,7 +267,8 @@ def run_dqn_policy_cartpole(env, model, render=False):
         with torch.no_grad():
             action = torch.argmax(model(s)).item()
 
-        next_state, reward, done = env.step(action)
+        next_state, reward, terminated, truncated = env.step(action)
+        done = terminated or truncated
 
         if render:
             env.render()
@@ -274,3 +277,21 @@ def run_dqn_policy_cartpole(env, model, render=False):
         state = next_state
 
     return total_reward
+
+def run_dqn_policy_lunarlander(env, model, render=False):
+    state = env.reset()
+    done = False
+    total_reward = 0
+
+    while not done:
+        if render:
+            env.render()
+        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+        with torch.no_grad():
+            action = torch.argmax(model(state_tensor)).item()
+        next_state, reward, terminated, truncated = env.step(action)
+        done = terminated or truncated
+        total_reward += reward
+        state = next_state
+
+    print(f"Total reward: {total_reward}")
