@@ -50,15 +50,28 @@ CartPole is a continuous-state control task where the agent applies horizontal f
 - **State space:** a 4D continuous vector: cart position, cart velocity, pole angle, and pole angular velocity.
 - **Action space:** two discrete actions: push left or push right.
 - **Transition model:** stochastic simulation dynamics from Gymnasium CartPole-v1.
-- **Reward function:** per-step survival reward from the base environment.
+- **Reward function:** per-step survival reward from the base environment, picking discrete values in $0$ and $1$ based on the pole's angle and cart's position.
 - **Stop criterion:** an episode ends on failure (terminated) or time-limit truncation.
-
+- **Evaluation metric:** a return over 200 is considered a success, with the maximum return being 500.
 This environment introduces:
 - continuous state representation
 - function approximation requirements for value estimation
 - longer-horizon training dynamics relevant to DQN-style methods
 
 It serves as a natural next step after GridWorld for evaluating linear approximation and neural value function learning.
+
+---
+
+### LunarLander
+
+LunarLander is a more complex continuous-state control task where the agent must safely land a spacecraft on a designated pad.
+
+- **State space:** an 8D continuous vector: lander position, velocity, angle, angular velocity, and leg contact indicators.
+- **Action space:** four discrete actions: do nothing, fire left engine, fire main engine, fire right engine.
+- **Transition model:** stochastic simulation dynamics from Gymnasium LunarLander-v3.
+- **Reward function:** shaped reward based on distance to landing pad, velocity, angle, and leg contact, ranging from $-100$ to $+100$.
+- **Stop criterion:** an episode ends on successful landing, crash, or time-limit truncation.
+- **Evaluation metric:** a return over 200 is considered a success, with the maximum return being 300.
 
 ---
 
@@ -227,25 +240,9 @@ where $G_t$ is the discounted return from time $t$ onward.
         - Compute return $G_t = \sum_{t'=t}^T \gamma^{t'-t} r_{t'}$
         - Update parameters:
           $$
-          \theta \leftarrow \theta + \eta\, \nabla_\theta \log \pi_\theta(a_t | s_t)\, G_t
+          \theta \leftarrow \theta + \eta~\nabla_\theta \log \pi_\theta(a_t | s_t)~G_t
           $$
 3. **Until** convergence
-
----
-
-#### Pseudocode
-
-$$
-\begin{array}{l}
-\text{for episode } = 1, 2, \ldots, M~\text{do} \\
-\quad \text{Sample episode } \tau = (s_0, a_0, r_0, \ldots, s_T) \sim \pi_\theta \\
-\quad \text{for each step } t = 0, 1, \ldots, T-1~\text{do} \\
-\qquad G_t = \sum_{t'=t}^{T-1} \gamma^{t'-t} r_{t'} \\
-\qquad \theta \leftarrow \theta + \eta~\nabla_\theta \log \pi_\theta(a_t | s_t)~G_t \\
-\quad \text{end for} \\
-\text{end for}
-\end{array}
-$$
 
 ---
 
@@ -258,4 +255,81 @@ $$
 The REINFORCE algorithm is implemented in `algos/REINFORCE.py` and serves as a starting point for understanding policy gradient methods. It provides a clear illustration of how to directly optimize policies using sampled returns, while also highlighting the challenges of high variance and the need for further improvements.
 
 ---
+
+### A2C (Advantage Actor-Critic)
+
+The REINFORCE algorithm suffers from **high variance** in policy updates due to the use of complete episode returns, making training unstable. **A2C** is an **actor-critic** method that improves upon vanilla REINFORCE by introducing a learned **critic** as a baseline to reduce gradient variance.
+
+- **Actor:** a parameterized policy \(\pi_\theta(a\mid s)\) that outputs an action distribution.
+- **Critic:** a parameterized value function \(V_\phi(s)\) that estimates expected future return from state \(s\).
+
+The actor is updated using an **advantage estimate**, which measures how good an action is relative to the baseline value \(V_\phi(s)\).
+
+---
+
+#### Advantage (1-step TD)
+
+A commonly used advantage estimator in A2C is the **1-step temporal-difference (TD) advantage**:
+\[
+\hat{A}_t \;=\; r_t \;+\; \gamma\, V_\phi(s_{t+1}) \;-\; V_\phi(s_t)
+\]
+
+Equivalently, define the TD target
+\[
+y_t \;=\; r_t + \gamma V_\phi(s_{t+1})
+\]
+and compute
+\[
+\hat{A}_t = y_t - V_\phi(s_t)
+\]
+
+---
+
+#### Loss Functions
+
+Theoretically, the A2C algorithm could have separate neural networks for the actor and critic, but in practice, it is common to use a shared backbone with two heads (one for the policy and one for the value function). The loss functions for the actor and critic are defined as follows:
+
+**Actor loss** (maximize expected return; implemented as minimizing the negative objective):
+\[
+\mathcal{L}_{\text{actor}}(\theta) \;=\; -\log \pi_\theta(a_t\mid s_t)\, \hat{A}_t
+\]
+
+**Critic loss** (value regression via TD error):
+\[
+\mathcal{L}_{\text{critic}}(\phi) \;=\; \hat{A}_t^2
+\]
+
+An additional **entropy bonus** can be included to encourage exploration:
+\[
+\mathcal{L}_{\text{entropy}}(\theta) \;=\; -\mathcal{H}(\pi_\theta(\cdot\mid s_t))
+\]
+
+**Total loss** (typical weighting):
+\[
+\mathcal{L} \;=\; \mathcal{L}_{\text{actor}} \;+\; 0.5\,\mathcal{L}_{\text{critic}} \;+\; 0.01\,\mathcal{L}_{\text{entropy}}
+\]
+
+In practice, the advantage term is usually **detached** when computing the actor loss so that the actor does not backpropagate through the critic.
+
+---
+
+#### Algorithm
+1. **Initialize** actor parameters \(\theta\) and critic parameters \(\phi\)
+2. **Repeat:**
+    - Generate an episode \(\tau = (s_0, a_0, r_0, ..., s_T)\) by sampling actions from \(\pi_\theta\)
+    - For each step \(t\) in \(\tau\):
+        - Compute TD target: \(y_t = r_t + \gamma V_\phi(s_{t+1})\)
+        - Compute advantage: \(\hat{A}_t = y_t - V_\phi(s_t)\)
+        - Update actor parameters:
+          \[
+          \theta \leftarrow \theta + \eta_\theta\, \nabla_\theta \log \pi_\theta(a_t\mid s_t)\, \hat{A}_t
+          \]
+        - Update critic parameters:
+          \[
+          \phi \leftarrow \phi - \eta_\phi\, \nabla_\phi (y_t - V_\phi(s_t))^2
+          \]
+3. **Until** convergence
+
+
+
 
