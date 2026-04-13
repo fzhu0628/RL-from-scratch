@@ -18,7 +18,7 @@
 ## Abstract
 I am a PhD candidate in the *Department of Electrical and Computer Engineering* at North Carolina State University. My research focuses on the theory of reinforcement learning (RL), particularly on leveraging multi-agent structures to improve sample efficiency. Specifically, we develop algorithms with provable guarantees to demonstrate the benefits of collaboration and decentralized learning.
 
-While much of our work is theoretical, this project aims to bridge theory and practice by implementing modern RL algorithms from scratch, including Q-learning, DQN, DDPG, TRPO, PPO, etc. In addition, we explore extensions inspired by multi-agent RL to evaluate their empirical performance across different environments. This is an evolving project intended to provide both practical insights and theoretical intuition.
+While much of our work is theoretical, this project aims to bridge theory and practice by implementing modern RL algorithms from scratch, including Q-learning, DQN, DDPG, PPO, etc. In addition, we explore extensions inspired by multi-agent RL to evaluate their empirical performance across different environments. This is an evolving project intended to provide both practical insights and theoretical intuition.
 
 ---
 
@@ -177,10 +177,10 @@ DQN can be viewed as a *nonlinear* extension of linear function approximation, w
 Notably, we provide two implementations of DQN that differ in how data collection and training are scheduled.
 
 - **Interleaved Training (Online Updates).**  
-  In this implementation, data collection and training are interleaved. At each environment step, the agent stores the transition in the replay buffer and performs a gradient update once the buffer size exceeds a threshold. This matches a standard *online* DQN setup, where each interaction step is followed by a training step. Because updates begin while the buffer is still being populated, the sampled transitions can be highly correlated. A common implementation detail is to **add a warmup period before training starts**. The implementation is provided in `algos/dqn_interleave_buffer_and_training`.
+  In this implementation, data collection and training are interleaved. At each environment step, the agent stores the transition in the replay buffer and performs a gradient update once the buffer size exceeds a threshold. This matches a standard *online* DQN setup, where each interaction step is followed by a training step. Because updates begin while the buffer is still being populated, the sampled transitions can be highly correlated. A common implementation detail is to **add a warmup period before training starts**. The implementation is provided in `algos、DQN.py/dqn_interleave_buffer_and_training`.
 
 - **Separated Training (Offline Updates).**  
-  In this implementation, data collection and training are separated. The agent first interacts with the environment to populate the replay buffer, and then performs multiple gradient updates using the collected data. This matches a batched training setup, where optimization is applied to a fixed dataset collected in advance. The implementation is provided in `algos/dqn_separate_buffer_and_training`.
+  In this implementation, data collection and training are separated. The agent first interacts with the environment to populate the replay buffer, and then performs multiple gradient updates using the collected data. This matches a batched training setup, where optimization is applied to a fixed dataset collected in advance. The implementation is provided in `algos/DQN.py/dqn_separate_buffer_and_training`.
 
 These two variants highlight a design choice in deep RL: whether data collection and optimization happen in the same loop or in separate phases.
 
