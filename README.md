@@ -226,9 +226,9 @@ $$
 ```
 
 The policy gradient theorem tells us:
-$$
+```math
 \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, G_t \right]
-$$
+```
 
 where $G_t = \sum_{k=t}^{T-1} \gamma^{k-t} r_k$ is the discounted return from time $t$ onward.
 
