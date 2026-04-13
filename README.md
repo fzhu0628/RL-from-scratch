@@ -242,9 +242,9 @@ where $G_t = \sum_{k=t}^{T-1} \gamma^{k-t} r_k$ is the discounted return from ti
     - For each step $t$ in $\tau$:
         - Compute return $G_t = \sum_{t'=t}^T \gamma^{t'-t} r_{t'}$
         - Update parameters:
-          $$
+          ```math
           \theta \leftarrow \theta + \eta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, G_t
-          $$
+          ```
 3. **Until** convergence
 
 ---
@@ -273,18 +273,18 @@ The actor is updated using an **advantage estimate**, which measures how good an
 #### Advantage (1-step TD)
 
 A commonly used advantage estimator in A2C is the **1-step temporal-difference (TD) advantage**:
-$$
+```math
 \hat{A}_t = r_t + \gamma \, V_\phi(s_{t+1}) - V_\phi(s_t)
-$$
+```
 
 Equivalently, define the TD target
-$$
+```math
 y_t = r_t + \gamma \, V_\phi(s_{t+1})
-$$
+```
 and compute
-$$
+```math
 \hat{A}_t = y_t - V_\phi(s_t)
-$$
+```
 
 ---
 
@@ -293,24 +293,24 @@ $$
 Theoretically, the A2C algorithm could have separate neural networks for the actor and critic, but in practice, it is common to use a shared backbone with two heads (one for the policy and one for the value function). The loss functions for the actor and critic are defined as follows:
 
 **Actor loss** (maximize expected return; implemented as minimizing the negative objective):
-$$
+```math
 \mathcal{L}_{\text{actor}}(\theta) = -\log \pi_\theta(a_t \mid s_t)\, \hat{A}_t
-$$
+```
 
 **Critic loss** (value regression via TD error):
-$$
+```math
 \mathcal{L}_{\text{critic}}(\phi) = \hat{A}_t^2
-$$
+```
 
 An additional **entropy bonus** can be included to encourage exploration:
-$$
+```math
 \mathcal{L}_{\text{entropy}}(\theta) = -\mathcal{H}\bigl(\pi_\theta(\cdot \mid s_t)\bigr)
-$$
+```
 
 **Total loss** (typical weighting):
-$$
+```math
 \mathcal{L} = \mathcal{L}_{\text{actor}} + 0.5\,\mathcal{L}_{\text{critic}} + 0.01\,\mathcal{L}_{\text{entropy}}
-$$
+```
 
 In practice, the advantage term is usually **detached** when computing the actor loss so that the actor does not backpropagate through the critic.
 
@@ -324,15 +324,15 @@ In practice, the advantage term is usually **detached** when computing the actor
    - Generate an episode $\tau = (s_0, a_0, r_0, \ldots, s_T)$ by sampling actions from $\pi_\theta$
    - For each step $t$ in $\tau$:
      - Compute TD target: $y_t = r_t + \gamma \, V_\phi(s_{t+1})$
-     - Compute advantage: $\hat{A}_t = y_t - V_\phi(s_t)$
+     - Compute advantage: $\hat A_t = y_t - V_\phi(s_t)$
      - Update actor parameters:
-       $$
+       ```math
        \theta \leftarrow \theta + \eta_\theta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \hat{A}_t
-       $$
+       ```
      - Update critic parameters:
-       $$
+       ```math
        \phi \leftarrow \phi - \eta_\phi \, \nabla_\phi \bigl(y_t - V_\phi(s_t)\bigr)^2
-       $$
+       ```
 
 3. **Until** convergence
 
