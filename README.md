@@ -5,12 +5,14 @@
 - [Environments](#environments)
   - [GridWorld](#gridworld)
   - [CartPole](#cartpole)
+  - [LunarLander](#lunarlander)
 - [Value-Based Algorithms](#value-based-algorithms)
   - [Tabular Q-Learning](#tabular-q-learning)
   - [Q-Learning with Linear Function Approximation (LFA)](#q-learning-with-linear-function-approximation-lfa)
   - [Deep Q-Networks (DQN)](#deep-q-networks-dqn)
 - [Policy Gradient Methods](#policy-gradient-methods)
   - [REINFORCE (Monte Carlo Policy Gradient)](#reinforce-monte-carlo-policy-gradient)
+  - [A2C (Advantage Actor-Critic)](#a2c-advantage-actor-critic)
 
 
 ## Abstract
@@ -366,8 +368,65 @@ $$
    - There is temporal correlation between the advantage estimates across time steps, which can further increase variance.
    - The critic's value estimates can be noisy, especially early in training, which can lead to high variance in the advantage estimates.
 
+---
+
 #### Potential Solutions:
-1. 
+##### Multi-step Returns
+To reduce bias, we can use multi-step returns instead of 1-step TD targets.  
+An $n$-step return starting at time $t$ is defined as:
+
+$$
+G_t^{(n)} = r_t + \gamma r_{t+1} + \cdots + \gamma^{n-1} r_{t+n-1} + \gamma^n V_\phi(s_{t+n})
+$$
+
+Given a rollout of length $n$, we can compute an $n$-step return for each time step within the rollout.  
+For $k = 0, \dots, n-1$:
+
+$$
+G_{t+k}^{(n-k)} = \sum_{l=0}^{n-k-1} \gamma^l r_{t+k+l} + \gamma^{n-k} V_\phi(s_{t+n})
+$$
+
+The corresponding advantage estimates are:
+
+$$
+\hat A_{t+k} = G_{t+k}^{(n-k)} - V_\phi(s_{t+k}), \quad k = 0, \dots, n-1
+$$
+
+We then compute the policy gradient using these per-step advantages and average across the rollout:
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\frac{1}{n} \sum_{k=0}^{n-1}
+\hat A_{t+k} \nabla_\theta \log \pi_\theta(a_{t+k} \mid s_{t+k})
+$$
+
+This approach can significantly reduce bias compared to 1-step TD targets, as it incorporates more actual rewards from the environment. However, it may still suffer from high variance, especially if the rollout length $n$ is large. As a result, we introduce the generalized advantage estimation (GAE), which provides a more flexible way to balance bias and variance by weighting returns of different lengths.
+
+##### GAE (Generalized Advantage Estimation)
+The GAE is a method that combines multi-step returns with an *exponentially weighted average* to provide a more stable advantage estimate. The GAE advantage is defined as:
+
+$$\hat A_t^{\text{GAE}(\gamma, \lambda)} = \sum_{l=0}^\infty (\gamma \lambda)^l \delta_{t+l}$$
+
+where $\delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$ is the TD error at time $t$. The hyperparameter $\lambda \in [0,1]$ controls the bias-variance tradeoff: $\lambda=0$ corresponds to 1-step TD (high bias), while $\lambda=1$ corresponds to using the full return (high variance). By tuning $\lambda$, we can achieve a more stable learning process with reduced variance compared to using multi-step returns alone. 
+
+In practice, we use the truncated version of GAE, where we only sum up to a finite horizon $n$:
+
+$$\hat A_{t+k}^{\text{GAE}(\gamma, \lambda, n)} = \sum_{l=0}^{n-k-1} (\gamma \lambda)^l \delta_{t+l}$$
+
+The rest of the process is similar to the multi-step return approach, where we compute the policy gradients using these GAE advantages and average over the rollout.
+
+GAE is more stable because it:
+
+- reduces long-horizon reward noise  
+- exponentially discounts unreliable future estimates  
+- smooths advantage signals over time  
+- provides a tunable bias–variance tradeoff
+
+##### Parallel Environments
+To further reduce variance and improve sample efficiency, we can run multiple **parallel environments** to collect more diverse experiences in each update. This allows us to compute policy gradients using a larger batch of data, which can lead to more stable updates and faster convergence. In practice, we can use vectorized environments (e.g., `gym.vector`) to manage multiple instances of the environment simultaneously, allowing for efficient data collection and processing.
+
+The final version for A2C with GAE and parallel environments is implemented in `algos/A2C.py/a2c_multi_env()`. This implementation incorporates all the techniques discussed above to provide a more robust and efficient policy gradient method compared to vanilla REINFORCE.
 
 
 
