@@ -221,10 +221,9 @@ Despite these advantages, policy gradients often exhibit **high variance** and b
 #### Objective
 
 Given a parameterized stochastic policy $\pi_\theta(a \mid s)$, the objective is to maximize the expected return:
+
 ```math
-$$
 J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T-1} \gamma^t r_t \right]
-$$
 ```
 
 The policy gradient theorem tells us:
