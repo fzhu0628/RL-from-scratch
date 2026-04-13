@@ -295,6 +295,16 @@ and compute
 Theoretically, the A2C algorithm could have separate neural networks for the actor and critic, but in practice, it is common to use a shared backbone with two heads (one for the policy and one for the value function). The loss functions for the actor and critic are defined as follows:
 
 **Actor loss** (maximize expected return; implemented as minimizing the negative objective):
+
+The policy gradient theorem states that the gradient of the objective can be written as:
+
+$$
+\nabla_\theta J(\theta) = \mathbb{E}_{s,a \sim \pi_\theta}
+\left[ A^\pi(s,a) \nabla_\theta \log \pi_\theta(a \mid s)
+\right]
+$$
+
+In practice, this expectation is approximated using samples, yielding the following loss function for the actor:
 ```math
 \mathcal{L}_{\text{actor}}(\theta) = -\log \pi_\theta(a_t \mid s_t)\, \hat{A}_t
 ```
@@ -303,6 +313,14 @@ Theoretically, the A2C algorithm could have separate neural networks for the act
 ```math
 \mathcal{L}_{\text{critic}}(\phi) = \hat{A}_t^2
 ```
+Other critic loss formulations include the Huber loss or the L1 loss, which can be more robust to outliers in the TD error. To be specific, the Huber loss is defined as:
+```math
+\mathcal{L}_{\text{critic}}(\phi) = \begin{cases}
+\frac{1}{2} \hat{A}_t^2 & \text{if } |\hat{A}_t| \leq \delta \\
+\delta (|\hat{A}_t| - \frac{1}{2} \delta) & \text{otherwise}
+\end{cases}
+```
+where $\delta$ is a hyperparameter that controls the transition point between the quadratic and linear regions of the loss.
 
 An additional **entropy bonus** can be included to encourage exploration:
 ```math
@@ -338,6 +356,18 @@ $$
 $$
 
 3. **Until** convergence
+
+---
+
+#### Issues with 1-step TD Advantage:
+1. **Bias:** The 1-step TD target is a biased estimate of the true return, especially when the value function used to compute the advantage is inaccurate. This can lead to suboptimal policy updates and slow learning.
+2. **High Variance:** There are a few reasons for high variance in the 1-step TD advantage:
+   - Only one sample of the advantage is used per update, which can lead to high variance in the gradient estimates.
+   - There is temporal correlation between the advantage estimates across time steps, which can further increase variance.
+   - The critic's value estimates can be noisy, especially early in training, which can lead to high variance in the advantage estimates.
+
+#### Potential Solutions:
+1. 
 
 
 
