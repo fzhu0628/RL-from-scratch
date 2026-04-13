@@ -242,9 +242,11 @@ where $G_t = \sum_{k=t}^{T-1} \gamma^{k-t} r_k$ is the discounted return from ti
     - For each step $t$ in $\tau$:
         - Compute return $G_t = \sum_{t'=t}^T \gamma^{t'-t} r_{t'}$
         - Update parameters:
-          ```math
+          
+          $$
           \theta \leftarrow \theta + \eta \nabla_\theta \log \pi_\theta(a_t \mid s_t) G_t
-          ```
+          $$
+          
 3. **Until** convergence
 
 ---
@@ -326,13 +328,15 @@ In practice, the advantage term is usually **detached** when computing the actor
      - Compute TD target: $y_t = r_t + \gamma \, V_\phi(s_{t+1})$
      - Compute advantage: $\hat A_t = y_t - V_\phi(s_t)$
      - Update actor parameters:
-       ```math
+       
+       $$
        \theta \leftarrow \theta + \eta_\theta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \hat A_t
-       ```
+       $$
      - Update critic parameters:
-       ```math
+
+       $$
        \phi \leftarrow \phi - \eta_\phi \, \nabla_\phi \left(y_t - V_\phi(s_t)\right)^2
-       ```
+       $$
 
 3. **Until** convergence
 
