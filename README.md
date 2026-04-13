@@ -329,15 +329,15 @@ In practice, the advantage term is usually **detached** when computing the actor
      - Compute advantage: $\hat A_t = y_t - V_\phi(s_t)$
      - Update actor parameters:
        
-  $$
-  \theta \leftarrow \theta + \eta_\theta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \hat A_t
-  $$
+    $$
+    \theta \leftarrow \theta + \eta_\theta \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \hat A_t
+    $$
 
      - Update critic parameters:
 
-```math
-\phi \leftarrow \phi - \eta_\phi \, \nabla_\phi \left(y_t - V_\phi(s_t)\right)^2
-```
+      ```math
+      \phi \leftarrow \phi - \eta_\phi \, \nabla_\phi \left(y_t - V_\phi(s_t)\right)^2
+      ```
 
 3. **Until** convergence
 
