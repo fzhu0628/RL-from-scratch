@@ -511,14 +511,9 @@ This results in:
 The PPO objective also consists of three components, similar to A2C but with the clipped policy objective for the actor:
 
 **Actor loss** (clipped policy objective):
+
 $$
-\mathcal{L}_{\text{actor}}(\theta)=
--\mathbb{E}\left[
-\min\left(
-r_t(\theta)\, \hat A_t,\;
-\mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr)\, \hat A_t
-\right)
-\right]
+\mathcal{L}_{\text{actor}}(\theta)=-\mathbb{E}\left[\min\left( r_t(\theta)\, \hat A_t,\; \mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr)\, \hat A_t \right) \right]
 $$
 
 **Critic loss** (value regression):
@@ -528,12 +523,14 @@ $$
 $$
 
 **Entropy bonus** (exploration):
+
 $$
 \mathcal{L}_{\text{entropy}}(\theta)=
 -\mathcal{H}\bigl(\pi_\theta(\cdot \mid s_t)\bigr)
 $$
 
 **Total loss:**
+
 $$
 \mathcal{L}= \mathcal{L}_{\text{actor}} + 0.5 \mathcal{L}_{\text{critic}} + 0.01 \mathcal{L}_{\text{entropy}}
 $$
@@ -552,13 +549,17 @@ $$
 
    - For multiple epochs:
      - Recompute:
+
        $$
        \log \pi_\theta(a_t \mid s_t), \quad V_\phi(s_t), \quad \mathcal{H}(\pi_\theta)
        $$
+
      - Compute ratio:
+
        $$
        r_t(\theta) = \exp\bigl(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{old}}(a_t \mid s_t)\bigr)
        $$
+
      - Optimize the clipped objective
 
 3. **Until** convergence
@@ -585,30 +586,38 @@ The implementation is provided in `algos/PPO.py/ppo_multi_env()`. This implement
   - During training, recompute all quantities with gradients enabled.
 
 - **Do NOT recompute old log-probabilities:**
+
   $$
   \log \pi_{\text{old}}(a_t \mid s_t)
   $$
+
   must remain fixed during all optimization epochs.
   
   Otherwise, the ratio becomes:
+
   $$
   r_t \approx 1
   $$
+
   and PPO reduces to standard A2C.
 
 - **Reuse actions during training:**
   - Do not resample actions when computing $\log \pi_\theta(a_t \mid s_t)$.
   - The ratio
+
     $$
     r_t = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\text{old}}(a_t \mid s_t)}
     $$
+
     is only valid if the same $a_t$ is used.
 
 - **Recompute critic values during training:**
   - The value function must be evaluated again:
+
     $$
     V_\phi(s_t)
     $$
+
   - Do not use stored rollout values for the critic loss.
 
 - **Returns and advantages are fixed:**
@@ -618,9 +627,11 @@ The implementation is provided in `algos/PPO.py/ppo_multi_env()`. This implement
 
 
 - **Entropy must be recomputed:**
+
   $$
   \mathcal{H}(\pi_\theta(\cdot \mid s_t))
   $$
+  
   - Depends on the current policy and should not be frozen.
 
 - **Minibatching improves stability:**
