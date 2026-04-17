@@ -517,6 +517,7 @@ $$
 $$
 
 **Critic loss** (value regression):
+
 $$
 \mathcal{L}_{\text{critic}}(\phi)=
 \bigl(V_\phi(s_t) - R_t\bigr)^2
@@ -548,19 +549,11 @@ $$
    - Store $\log \pi_{\text{old}}(a_t \mid s_t)$
 
    - For multiple epochs:
-     - Recompute:
-
-       $$
-       \log \pi_\theta(a_t \mid s_t), \quad V_\phi(s_t), \quad \mathcal{H}(\pi_\theta)
-       $$
-
-     - Compute ratio:
+     - Compute ratio and optimize the clipped objective
 
        $$
        r_t(\theta) = \exp\bigl(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{old}}(a_t \mid s_t)\bigr)
        $$
-
-     - Optimize the clipped objective
 
 3. **Until** convergence
 
@@ -586,38 +579,13 @@ The implementation is provided in `algos/PPO.py/ppo_multi_env()`. This implement
   - During training, recompute all quantities with gradients enabled.
 
 - **Do NOT recompute old log-probabilities:**
-
-  $$
-  \log \pi_{\text{old}}(a_t \mid s_t)
-  $$
-
-  must remain fixed during all optimization epochs.
-  
-  Otherwise, the ratio becomes:
-
-  $$
-  r_t \approx 1
-  $$
-
-  and PPO reduces to standard A2C.
+$\log \pi_{\text{old}}(a_t \mid s_t)$ must remain fixed during all optimization epochs. Otherwise, the ratio becomes: $r_t \approx 1$, and PPO reduces to standard A2C.
 
 - **Reuse actions during training:**
   - Do not resample actions when computing $\log \pi_\theta(a_t \mid s_t)$.
-  - The ratio
-
-    $$
-    r_t = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\text{old}}(a_t \mid s_t)}
-    $$
-
-    is only valid if the same $a_t$ is used.
 
 - **Recompute critic values during training:**
-  - The value function must be evaluated again:
-
-    $$
-    V_\phi(s_t)
-    $$
-
+  - The value function must be evaluated again: $V_\phi(s_t)$
   - Do not use stored rollout values for the critic loss.
 
 - **Returns and advantages are fixed:**
@@ -627,12 +595,7 @@ The implementation is provided in `algos/PPO.py/ppo_multi_env()`. This implement
 
 
 - **Entropy must be recomputed:**
-
-  $$
-  \mathcal{H}(\pi_\theta(\cdot \mid s_t))
-  $$
-  
-  - Depends on the current policy and should not be frozen.
+$\mathcal{H}(\pi_\theta(\cdot \mid s_t))$ Depends on the current policy and should not be frozen.
 
 - **Minibatching improves stability:**
   - Split rollout data into smaller batches when performing multiple epochs.
