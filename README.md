@@ -550,10 +550,12 @@ $$
 
    - For multiple epochs:
      - Compute ratio and optimize the clipped objective
-
+     
+      ```math
        $$
        r_t(\theta) = \exp\bigl(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{old}}(a_t \mid s_t)\bigr)
        $$
+      ```
 
 3. **Until** convergence
 
