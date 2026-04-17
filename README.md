@@ -13,6 +13,7 @@
 - [Policy Gradient Methods](#policy-gradient-methods)
   - [REINFORCE (Monte Carlo Policy Gradient)](#reinforce-monte-carlo-policy-gradient)
   - [A2C (Advantage Actor-Critic)](#a2c-advantage-actor-critic)
+  - [PPO (Proximal Policy Optimization)](#ppo-proximal-policy-optimization)
 
 
 ## Abstract
@@ -358,6 +359,8 @@ $$
 
 3. **Until** convergence
 
+The implementation is provided in `algos/A2C.py/a2c()`. This implementation uses a shared backbone for the actor and critic, and computes the losses as described above. The training loop processes one episode at a time, updating the parameters after each episode.
+
 ---
 
 #### Issues with 1-step TD Advantage:
@@ -426,6 +429,208 @@ GAE is more stable because it:
 To further reduce variance and improve sample efficiency, we can run multiple **parallel environments** to collect more diverse experiences in each update. This allows us to compute policy gradients using a larger batch of data, which can lead to more stable updates and faster convergence. In practice, we can use vectorized environments (e.g., `gym.vector`) to manage multiple instances of the environment simultaneously, allowing for efficient data collection and processing.
 
 The final version for A2C with GAE and parallel environments is implemented in `algos/A2C.py/a2c_multi_env()`. This implementation incorporates all the techniques discussed above to provide a more robust and efficient policy gradient method compared to vanilla REINFORCE.
+
+---
+
+### PPO (Proximal Policy Optimization)
+
+While A2C improves upon REINFORCE by reducing variance via a learned critic and advantage estimation, it still suffers from two key limitations:
+
+1. **Single update per rollout:** Each batch of collected data is used only once.
+2. **Unconstrained updates:** Large policy updates can lead to instability or performance collapse.
+
+A natural extension is to reuse the same rollout for multiple updates. However, doing so naively can cause the policy to deviate too far from the one that generated the data, **violating the on-policy assumption.**
+
+---
+
+#### Trust Region Motivation
+
+To address this issue, we would like to constrain the policy update such that the new policy remains close to the old policy. This idea is formalized in Trust Region Policy Optimization (TRPO), which solves:
+
+$$
+\max_\theta \; \mathbb{E}\left[ r_t(\theta)\, \hat A_t \right]
+\quad
+\text{s.t.} \quad
+D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \,\|\, \pi_{\text{old}}(\cdot \mid s_t)\bigr) \le \delta
+$$
+
+where
+
+$$
+r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\text{old}}(a_t \mid s_t)}
+$$
+
+is the **probability ratio** between the new and old policies.
+
+While TRPO provides strong theoretical guarantees, it is ***computationally expensive*** due to the constrained optimization.
+
+---
+
+#### Clipped Objective
+
+PPO simplifies the above idea by replacing the hard KL constraint with a **clipped surrogate objective**:
+
+$$
+\mathcal{L}_{\text{actor}}(\theta)=
+-\mathbb{E}\left[
+\min\left(
+r_t(\theta)\, \hat A_t,\;
+\mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr)\, \hat A_t
+\right)
+\right]
+$$
+
+where $\epsilon > 0$ is a hyperparameter controlling how far the policy is allowed to change.
+
+---
+
+#### Intuition
+It can be verified that the KL distance between the new and old policies can be approximated as:
+
+$$
+D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \,\|\, \pi_{\text{old}}(\cdot \mid s_t)\bigr) \approx \frac{1}{2} \mathbb{E}_{a_t \sim \pi_{\text{old}}}\left[(r_t(\theta) - 1)^2\right]
+$$
+
+As a result, the constraint in TRPO can be approximately enforced by ensuring that $r_t(\theta)$ stays close to $1$. The clipped objective achieves this by:
+
+- If $r_t(\theta)$ is close to $1$, the update behaves like standard policy gradient (A2C).
+- If $r_t(\theta)$ deviates too far from $1$, the objective is **clipped**, preventing excessively large updates.
+
+The minimum operator ensures that the objective is always a lower bound on the unclipped objective, which provides a conservative update that prevents performance collapse.
+
+This results in:
+
+- **stable learning**
+- **controlled policy updates**
+- **safe reuse of data**
+
+---
+
+#### Loss Functions
+
+The PPO objective also consists of three components, similar to A2C but with the clipped policy objective for the actor:
+
+**Actor loss** (clipped policy objective):
+$$
+\mathcal{L}_{\text{actor}}(\theta)=
+-\mathbb{E}\left[
+\min\left(
+r_t(\theta)\, \hat A_t,\;
+\mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr)\, \hat A_t
+\right)
+\right]
+$$
+
+**Critic loss** (value regression):
+$$
+\mathcal{L}_{\text{critic}}(\phi)=
+\bigl(V_\phi(s_t) - R_t\bigr)^2
+$$
+
+**Entropy bonus** (exploration):
+$$
+\mathcal{L}_{\text{entropy}}(\theta)=
+-\mathcal{H}\bigl(\pi_\theta(\cdot \mid s_t)\bigr)
+$$
+
+**Total loss:**
+$$
+\mathcal{L}= \mathcal{L}_{\text{actor}} + 0.5 \mathcal{L}_{\text{critic}} + 0.01 \mathcal{L}_{\text{entropy}}
+$$
+
+---
+
+#### Algorithm
+
+1. **Initialize** actor parameters $\theta$ and critic parameters $\phi$
+
+2. **Repeat:**
+   - Collect a rollout $\tau = (s_t, a_t, r_t)$ using the current policy $\pi_\theta$
+   - Compute advantages $\hat A_t$ (e.g., using GAE)
+   - Compute returns $R_t = \hat A_t + V_\phi(s_t)$
+   - Store $\log \pi_{\text{old}}(a_t \mid s_t)$
+
+   - For multiple epochs:
+     - Recompute:
+       $$
+       \log \pi_\theta(a_t \mid s_t), \quad V_\phi(s_t), \quad \mathcal{H}(\pi_\theta)
+       $$
+     - Compute ratio:
+       $$
+       r_t(\theta) = \exp\bigl(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{old}}(a_t \mid s_t)\bigr)
+       $$
+     - Optimize the clipped objective
+
+3. **Until** convergence
+
+The implementation is provided in `algos/PPO.py/ppo_multi_env()`. This implementation follows the algorithm described above, with careful attention to the separation of data collection and optimization phases, as well as the correct handling of log-probabilities and advantage estimates.
+
+---
+
+#### Key Differences from A2C
+
+| Aspect | A2C | PPO |
+|------|-----|-----|
+| updates per rollout | 1 | multiple |
+| data reuse | ❌ | ✅ |
+| stability control | none | clipping |
+| policy reference | current only | old vs new |
+
+---
+
+#### Implementation details and common pitfalls
+
+- **Rollout vs training separation:**
+  - During rollout, use `torch.no_grad()` to collect data.
+  - During training, recompute all quantities with gradients enabled.
+
+- **Do NOT recompute old log-probabilities:**
+  $$
+  \log \pi_{\text{old}}(a_t \mid s_t)
+  $$
+  must remain fixed during all optimization epochs.
+  
+  Otherwise, the ratio becomes:
+  $$
+  r_t \approx 1
+  $$
+  and PPO reduces to standard A2C.
+
+- **Reuse actions during training:**
+  - Do not resample actions when computing $\log \pi_\theta(a_t \mid s_t)$.
+  - The ratio
+    $$
+    r_t = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\text{old}}(a_t \mid s_t)}
+    $$
+    is only valid if the same $a_t$ is used.
+
+- **Recompute critic values during training:**
+  - The value function must be evaluated again:
+    $$
+    V_\phi(s_t)
+    $$
+  - Do not use stored rollout values for the critic loss.
+
+- **Returns and advantages are fixed:**
+  - Compute $\hat A_t$ and $R_t$ **once** per rollout.
+  - Do not recompute them during optimization epochs.
+
+
+
+- **Entropy must be recomputed:**
+  $$
+  \mathcal{H}(\pi_\theta(\cdot \mid s_t))
+  $$
+  - Depends on the current policy and should not be frozen.
+
+- **Minibatching improves stability:**
+  - Split rollout data into smaller batches when performing multiple epochs.
+  - Reduces correlation and prevents overfitting to a single rollout.
+
+- **Hyperparameter interaction:**
+  - Larger $\epsilon$ → more aggressive updates (less stable)
+  - Larger number of epochs → more data reuse (risk of overfitting)
+  - These should be tuned jointly.
 
 
 

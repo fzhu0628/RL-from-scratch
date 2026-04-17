@@ -286,7 +286,7 @@ def a2c_multi_env(envs, rounds=20000, n_steps=10, gamma=0.99, lr=1e-4):
     plt.grid()
     plt.show()
 
-    return model
+    return model, reward_history
     
      
                 
