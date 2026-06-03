@@ -448,7 +448,7 @@ A natural extension is to reuse the same rollout for multiple updates. However, 
 To address this issue, we would like to constrain the policy update such that the new policy remains close to the old policy. This idea is formalized in Trust Region Policy Optimization (TRPO), which solves:
 
 $$
-\max_\theta \; \mathbb{E}\left[ r_t(\theta)\, \hat A_t \right]
+\max_\theta \mathbb{E}\left[ r_t(\theta) \hat A_t \right]
 \quad
 \text{s.t.} \quad
 D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \,\|\, \pi_{\text{old}}(\cdot \mid s_t)\bigr) \le \delta

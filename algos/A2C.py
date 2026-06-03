@@ -53,21 +53,21 @@ def a2c(env, episodes=2000, n_steps=5, gamma=0.99, lr=3e-4):
 
             # 🔹 collect n steps
             for _ in range(n_steps):
-                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device) # [1, state_dim] since model expects batch dimension
 
-                logits, value = model(state_tensor)
+                logits, value = model(state_tensor) # [1, action_dim], [1,1]
                 dist = Categorical(logits=logits)
 
-                action = dist.sample()
-                log_prob = dist.log_prob(action)
-                entropy = dist.entropy()
+                action = dist.sample() # [1]
+                log_prob = dist.log_prob(action) # [1]
+                entropy = dist.entropy() # [1]
 
-                next_state, reward, terminated, truncated = env.step(action.item())
-                done = terminated or truncated
+                next_state, reward, terminated, truncated = env.step(action.item()) # action.item() to convert from tensor to int
+                done = terminated or truncated 
 
                 # reward = np.clip(reward, -1, 1)
 
-                log_probs.append(log_prob)
+                log_probs.append(log_prob) 
                 values.append(value.squeeze())
                 rewards.append(torch.tensor(reward, dtype=torch.float32).to(device))
                 entropies.append(entropy)
@@ -88,7 +88,7 @@ def a2c(env, episodes=2000, n_steps=5, gamma=0.99, lr=3e-4):
                     next_value = next_value.squeeze()
 
             # 🔹 stack
-            values = torch.stack(values)
+            values = torch.stack(values) # [n_steps]
             log_probs = torch.stack(log_probs)
             rewards = torch.stack(rewards)
             entropies = torch.stack(entropies)
