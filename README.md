@@ -451,7 +451,7 @@ $$
 \max_\theta \mathbb{E}\left[ r_t(\theta) \hat A_t \right]
 \quad
 \text{s.t.} \quad
-D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \,\|\, \pi_{\text{old}}(\cdot \mid s_t)\bigr) \le \delta
+D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \mid \pi_{\text{old}}(\cdot \mid s_t)\bigr) \le \delta
 $$
 
 where
@@ -474,8 +474,8 @@ $$
 \mathcal{L}_{\text{actor}}(\theta)=
 -\mathbb{E}\left[
 \min\left(
-r_t(\theta)\, \hat A_t,\;
-\mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr)\, \hat A_t
+r_t(\theta) \hat A_t;
+\mathrm{clip}\bigl(r_t(\theta), 1 - \epsilon, 1 + \epsilon\bigr) \hat A_t
 \right)
 \right]
 $$
@@ -488,7 +488,7 @@ where $\epsilon > 0$ is a hyperparameter controlling how far the policy is allow
 It can be verified that the KL distance between the new and old policies can be approximated as:
 
 $$
-D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \,\|\, \pi_{\text{old}}(\cdot \mid s_t)\bigr) \approx \frac{1}{2} \mathbb{E}_{a_t \sim \pi_{\text{old}}}\left[(r_t(\theta) - 1)^2\right]
+D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot \mid s_t) \mid \pi_{\text{old}}(\cdot \mid s_t)\bigr) \approx \frac{1}{2} \mathbb{E}_{a_t \sim \pi_{\text{old}}}\left[(r_t(\theta) - 1)^2\right]
 $$
 
 As a result, the constraint in TRPO can be approximately enforced by ensuring that $r_t(\theta)$ stays close to $1$. The clipped objective achieves this by:
